@@ -144,6 +144,7 @@ const vistas = {
   dashboard: () => new RedkyberDashboard().render(),
   informes: () => new RedkyberInformes().render(),
   consola: () => new RedkyberConsola().render(),
+  pedido: () => new RedkyberPedido().render(),
   modelo: () => new RedkyberModelo().render(),
   rendimiento: () => new RedkyberRendimiento().render()
 };
