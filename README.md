@@ -20,6 +20,10 @@ rm data/redkyber.db
 php -r '$db=new SQLite3("data/redkyber.db"); $db->exec(file_get_contents("data/schema.sql")); $db->exec(file_get_contents("data/demo.sql"));'
 ```
 
+## Uso de la IA en la unidad 4
+
+Yo elegí qué había que agregar a RedKyber en esta unidad (modelo de datos editable, consultas guardadas con parámetros, procedimientos de servidor, pedido guiado, panel personalizable, informes con vistas, integración con la base de clase y pruebas) y fui aprobando cada paso. El código lo escribió Claude, la IA de Anthropic, siguiendo mis indicaciones; yo no escribí esas partes a mano. Después revisé cómo quedó y probé las funciones en el navegador, y ejecuté las 30 pruebas de `pruebas/pruebas.php`. Esta nota solo describe la unidad 4: lo de las unidades anteriores lo llevo en sus propios commits.
+
 ## Novedades de la unidad 4 (adaptación a un supuesto empresarial)
 
 | Elemento | Archivo | Descripción |
