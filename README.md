@@ -20,6 +20,27 @@ rm data/redkyber.db
 php -r '$db=new SQLite3("data/redkyber.db"); $db->exec(file_get_contents("data/schema.sql")); $db->exec(file_get_contents("data/demo.sql"));'
 ```
 
+## Novedades de la unidad 4 (adaptación a un supuesto empresarial)
+
+| Elemento | Archivo | Descripción |
+|---|---|---|
+| Modelo de datos | `nucleo/modelo.js` + rutas `modelo`, `agregar_campo`, `crear_tabla`, `crear_vista`, `eliminar_vista` | Agregar campos, tablas y vistas desde la aplicación. Los nombres se validan con una lista cerrada de caracteres y los tipos son TEXT, INTEGER o REAL |
+| Consultas guardadas y con parámetros | `nucleo/consola.js` + tabla `consultas` | Las consultas se guardan en la base. Los parámetros (`:cliente`) se piden en campos y se enlazan, no se concatenan |
+| Procedimientos de servidor | `api/superapi.php` función `procedimiento()` | `nuevo_pedido` y `recalcular_totales`, dentro de una transacción. SQLite no tiene `CREATE PROCEDURE` (MySQL sí), por eso la lógica está en PHP |
+| Proceso guiado | `nucleo/pedido.js` | Pedido en 3 pasos (cliente, aeronaves, confirmación) con validación en el navegador y en el servidor. El total lo calcula el servidor |
+| Panel de control | `nucleo/dashboard.js` | Las gráficas se reordenan arrastrando y se pueden ocultar. La preferencia queda guardada en el navegador |
+| Informes | `nucleo/informes.js` | Se elige qué tablas y vistas entran en el informe |
+| Integración | `servicios/entrada.php`, `servicios/importar_empresa.php` | API de entrada protegida con clave (`data/clave-integracion.txt`, fuera de git) y script que importa los clientes de `empresa.db` de clase |
+| Pruebas | `pruebas/pruebas.php` | 30 pruebas por HTTP sobre una base temporal |
+
+### Ejecutar las pruebas
+
+```bash
+php pruebas/pruebas.php
+```
+
+Para la integración hay que crear una clave: `head -c 24 /dev/urandom | base64 | tr -d '/+=' > data/clave-integracion.txt`.
+
 ## Novedades de la unidad 3
 
 ### Extensiones visuales
