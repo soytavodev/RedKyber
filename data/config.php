@@ -1,4 +1,4 @@
 {
-  "nombre":"REDKYBER",
+  "nombre":"RedKyber",
   "color":"#b00020"
 }

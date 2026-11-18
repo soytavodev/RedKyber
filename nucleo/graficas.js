@@ -1,4 +1,4 @@
-// REDKYBER · Librería de gráficas en SVG (sin librerías externas)
+// RedKyber · Librería de gráficas en SVG (sin librerías externas)
 // Tipos: barras, horizontal, lineas, area, tarta, anillo, radar
 class RedkyberGraficas {
   static tipos = ["barras", "horizontal", "lineas", "area", "tarta", "anillo", "radar"];

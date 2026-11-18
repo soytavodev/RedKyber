@@ -1,4 +1,4 @@
-// REDKYBER · Monitor de rendimiento del sistema (ruta=rendimiento)
+// RedKyber · Monitor de rendimiento del sistema (ruta=rendimiento)
 // Mide el tiempo de respuesta de la API desde el navegador y el de cada consulta en el servidor
 class RedkyberRendimiento {
   constructor(contenedor = "section") {

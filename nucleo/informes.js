@@ -1,4 +1,4 @@
-// REDKYBER · Informes: todas las tablas con filtros, ordenación, totales,
+// RedKyber · Informes: todas las tablas con filtros, ordenación, totales,
 // gráfica configurable, exportación en varios formatos e impresión a PDF
 class RedkyberInformes {
   constructor(contenedor = "section") {
@@ -24,7 +24,7 @@ class RedkyberInformes {
       </div>
       <article class="documento">
         <header class="documento-cabecera">
-          <div><small>REDKYBER · INFORME GENERAL</small><h1>Estado de la base de datos</h1></div>
+          <div><small>RedKyber · INFORME GENERAL</small><h1>Estado de la base de datos</h1></div>
           <div>${new Date().toLocaleString("es-ES")}<br>${entidades.length} tablas · ${total} registros</div>
         </header>
         <div id="bloques"></div>

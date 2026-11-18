@@ -1,4 +1,4 @@
-// REDKYBER · Consola SQL de solo lectura (ruta=consulta)
+// RedKyber · Consola SQL de solo lectura (ruta=consulta)
 // Permite lanzar consultas SELECT, ver el resultado, graficarlo y exportarlo
 class RedkyberConsola {
   static ejemplos = {

@@ -1,4 +1,4 @@
-// REDKYBER · Dashboard con indicadores reales calculados en la API (ruta=indicadores)
+// RedKyber · Dashboard con indicadores reales calculados en la API (ruta=indicadores)
 class RedkyberDashboard {
   constructor(contenedor = "section") {
     this.zona = document.querySelector(contenedor);

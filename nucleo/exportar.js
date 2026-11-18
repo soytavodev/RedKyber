@@ -1,4 +1,4 @@
-// REDKYBER · Exportación de datos e informes
+// RedKyber · Exportación de datos e informes
 // Formatos: CSV, JSON, HTML, Markdown y XML (el profesor solo exporta CSV)
 class RedkyberExportar {
   static formatos = { csv: "CSV", json: "JSON", html: "HTML", md: "Markdown", xml: "XML" };
@@ -55,10 +55,10 @@ class RedkyberExportar {
   static html(nombre, campos, registros) {
     const e = v => String(v ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     return `<!doctype html>
-<html lang="es"><head><meta charset="utf-8"><title>REDKYBER · ${e(nombre)}</title>
+<html lang="es"><head><meta charset="utf-8"><title>RedKyber · ${e(nombre)}</title>
 <style>body{font-family:Arial,sans-serif;margin:30px}h1{color:#b00020}table{border-collapse:collapse;width:100%}th{background:#b00020;color:#fff}th,td{padding:8px;border:1px solid #ddd;text-align:left}tr:nth-child(even){background:#f7f7f7}</style>
 </head><body>
-<h1>REDKYBER · ${e(nombre)}</h1>
+<h1>RedKyber · ${e(nombre)}</h1>
 <p>Exportado el ${new Date().toLocaleString("es-ES")} · ${registros.length} registros</p>
 <table><thead><tr>${campos.map(c => `<th>${e(c)}</th>`).join("")}</tr></thead>
 <tbody>
@@ -70,7 +70,7 @@ ${registros.map(r => `<tr>${campos.map(c => `<td>${e(r[c])}</td>`).join("")}</tr
   static markdown(nombre, campos, registros) {
     const e = v => String(v ?? "").replace(/\|/g, "\\|").replace(/\n/g, " ");
     return [
-      `# REDKYBER · ${nombre}`,
+      `# RedKyber · ${nombre}`,
       "",
       `Exportado el ${new Date().toLocaleString("es-ES")} · ${registros.length} registros`,
       "",

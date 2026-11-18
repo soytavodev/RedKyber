@@ -1,4 +1,4 @@
-# REDKYBER · Unidad 3: Organización y consulta de la información
+# RedKyber · ERP para un fabricante de aviones
 
 ERP para una empresa fabricante de aviones (clientes = aerolíneas). Parte de la versión de la unidad 2
 (CRUD genérico sobre cualquier tabla SQLite + instalador a partir de un modelo de datos) y añade
@@ -7,7 +7,7 @@ herramientas de **consulta, análisis, exportación y monitorización** de la in
 ## Puesta en marcha
 
 ```bash
-cd REDKYBER
+cd RedKyber
 php -S localhost:8000
 ```
 
@@ -46,7 +46,7 @@ php -r '$db=new SQLite3("data/redkyber.db"); $db->exec(file_get_contents("data/s
 ```bash
 crontab -e
 # Todos los días a las 02:00
-0 2 * * * cd /ruta/a/REDKYBER && php servicios/extraccion.php >> data/extracciones/cron.log 2>&1
+0 2 * * * cd /ruta/a/RedKyber && php servicios/extraccion.php >> data/extracciones/cron.log 2>&1
 ```
 
 ## Rutas de la API (`api/superapi.php`)

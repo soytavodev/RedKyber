@@ -1,9 +1,9 @@
 <?php
-// REDKYBER · Extracción automática de datos (almacén de datos sencillo)
+// RedKyber · Extracción automática de datos (almacén de datos sencillo)
 //
 // Uso manual:   php servicios/extraccion.php
 // Uso con cron: crontab -e  y añadir (todos los días a las 02:00):
-//   0 2 * * * cd /ruta/a/REDKYBER && php servicios/extraccion.php >> data/extracciones/cron.log 2>&1
+//   0 2 * * * cd /ruta/a/RedKyber && php servicios/extraccion.php >> data/extracciones/cron.log 2>&1
 //
 // Cada ejecución crea data/extracciones/AAAA-MM-DD_HHMMSS/ con un CSV por tabla,
 // un resumen.json con los indicadores del momento y añade una línea a registro.log
