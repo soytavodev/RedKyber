@@ -53,6 +53,37 @@ function indicadores($db){
   return ['kpi'=>$kpi,'series'=>$series];
 }
 
+// Procedimientos de servidor. SQLite no tiene procedimientos almacenados (como MySQL con CREATE PROCEDURE),
+// así que la lógica de negocio vive aquí, en PHP, dentro de una transacción: o se guarda todo o nada.
+function procedimiento($db,$nombre,$e){
+  switch($nombre){
+    case 'nuevo_pedido':
+      $cliente=(int)($e['cliente_id']??0); $fecha=(string)($e['fecha']??''); $lineas=$e['lineas']??[];
+      if(!$db->querySingle("SELECT COUNT(*) FROM clientes WHERE identificador=$cliente")) throw new Exception('El cliente no existe');
+      if(!preg_match('/^\d{4}-\d{2}-\d{2}$/',$fecha) || !checkdate((int)substr($fecha,5,2),(int)substr($fecha,8,2),(int)substr($fecha,0,4))) throw new Exception('La fecha no es válida (AAAA-MM-DD)');
+      if(!is_array($lineas) || !$lineas) throw new Exception('El pedido necesita al menos una línea');
+      $db->exec('BEGIN');
+      try{
+        $db->exec("INSERT INTO pedidos (fecha,estado,cliente_id,total) VALUES ('".$db->escapeString($fecha)."','Pendiente',$cliente,0)");
+        $pedido=$db->lastInsertRowID(); $total=0;
+        foreach($lineas as $l){
+          $producto=(int)($l['producto_id']??0); $cantidad=(int)($l['cantidad']??0);
+          if($cantidad<1) throw new Exception('La cantidad debe ser al menos 1');
+          $precio=$db->querySingle("SELECT precio FROM productos WHERE identificador=$producto");
+          if($precio===null) throw new Exception("El producto $producto no existe");
+          $db->exec("INSERT INTO lineaspedido (pedido_id,producto_id,cantidad,precio_unitario) VALUES ($pedido,$producto,$cantidad,$precio)");
+          $total+=$cantidad*$precio;
+        }
+        $db->exec("UPDATE pedidos SET total=$total WHERE identificador=$pedido");
+        $db->exec('COMMIT');
+      }catch(Throwable $x){ $db->exec('ROLLBACK'); throw $x; }
+      return ['ok'=>true,'pedido'=>$pedido,'total'=>$total];
+    case 'recalcular_totales':
+      $db->exec("UPDATE pedidos SET total=IFNULL((SELECT SUM(cantidad*precio_unitario) FROM lineaspedido WHERE pedido_id=pedidos.identificador),0)");
+      return ['ok'=>true,'pedidos'=>$db->changes()];
+    default: throw new Exception('Procedimiento no válido');
+  }
+}
 // Mide cuánto tarda cada consulta y el tamaño de la base de datos
 function rendimiento($db){
   $ruta=realpath(RUTA_BD);
@@ -118,12 +149,18 @@ try{
       $lectura=new SQLite3(RUTA_BD,SQLITE3_OPEN_READONLY);
       $lectura->enableExceptions(true);
       $inicio=hrtime(true);
-      $r=$lectura->query($sql); $columnas=[]; $registros=[];
+      // Parámetros con nombre (:cliente): se enlazan, nunca se concatenan en el SQL
+      $parametros=entrada()['parametros'] ?? [];
+      preg_match_all('/:([A-Za-z_][A-Za-z0-9_]*)/',$sql,$nombres); $nombres=array_unique($nombres[1]);
+      foreach($nombres as $n) if(!isset($parametros[$n]) || $parametros[$n]==='') throw new Exception("Falta el parámetro :$n");
+      $stmt=$lectura->prepare($sql); foreach($nombres as $n) $stmt->bindValue(':'.$n, is_numeric($parametros[$n])?$parametros[$n]+0:$parametros[$n]);
+      $r=$stmt->execute(); $columnas=[]; $registros=[];
       for($i=0;$i<$r->numColumns();$i++) $columnas[]=['name'=>$r->columnName($i)];
       while(($f=$r->fetchArray(SQLITE3_ASSOC)) && count($registros)<1000) $registros[]=$f;
       $ms=round((hrtime(true)-$inicio)/1e6,3);
       $lectura->close();
       echo json_encode(['columnas'=>$columnas,'registros'=>$registros,'ms'=>$ms],JSON_UNESCAPED_UNICODE); break;
+    case 'procedimiento': echo json_encode(procedimiento($db,$_GET['nombre'] ?? '',entrada()),JSON_UNESCAPED_UNICODE); break;
     case 'modelo':
       $tablas=[]; foreach(tablasPermitidas($db) as $t){ [$cols]=estructura($db,$t); $tablas[]=['tabla'=>$t,'columnas'=>array_map(fn($c)=>['name'=>$c['name'],'type'=>$c['type'],'pk'=>$c['pk']],$cols)]; }
       $vistas=filas($db,"SELECT name, sql FROM sqlite_master WHERE type='view' ORDER BY name");

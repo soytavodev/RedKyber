@@ -62,3 +62,9 @@ CREATE TABLE componentes(
     identificador INTEGER PRIMARY KEY AUTOINCREMENT,
     FOREIGN KEY(proveedor_id) REFERENCES proveedores(identificador)
 );
+CREATE TABLE consultas(
+    nombre TEXT,
+    descripcion TEXT,
+    sql TEXT,
+    identificador INTEGER PRIMARY KEY AUTOINCREMENT
+);

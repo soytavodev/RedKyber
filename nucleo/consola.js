@@ -16,11 +16,12 @@ class RedkyberConsola {
   render() {
     this.zona.innerHTML = `
       <div class="barra"><div><small>CONSULTAS DE ACCESO A DATOS</small><h2>Consola SQL</h2></div></div>
-      <p class="ayuda">Solo lectura: se permite una única sentencia <code>SELECT</code>. Máximo 1000 filas.</p>
+      <p class="ayuda">Solo lectura: se permite una única sentencia <code>SELECT</code>. Máximo 1000 filas. Los parámetros se escriben con dos puntos (<code>:cliente</code>) y aparecen como campos.</p>
       <div class="consola">
-        <select id="ejemplos"><option value="">Consultas de ejemplo…</option></select>
+        <div class="controles"><select id="ejemplos"><option value="">Consultas de ejemplo…</option></select><select id="guardadas"><option value="">Consultas guardadas…</option></select></div>
         <textarea id="sql" spellcheck="false">SELECT * FROM clientes</textarea>
-        <div class="consola-acciones"><button type="button" id="ejecutar">Ejecutar (Ctrl+Enter)</button><span id="estado"></span></div>
+        <div id="parametros" class="controles"></div>
+        <div class="consola-acciones"><button type="button" id="ejecutar">Ejecutar (Ctrl+Enter)</button><button type="button" id="guardar" class="secundario">Guardar consulta</button><span id="estado"></span></div>
       </div>
       <div id="resultado"></div>`;
 
@@ -29,6 +30,41 @@ class RedkyberConsola {
     select.onchange = () => { if (select.value) { area.value = RedkyberConsola.ejemplos[select.value]; this.ejecutar(); } };
     this.zona.querySelector("#ejecutar").onclick = () => this.ejecutar();
     area.onkeydown = e => { if (e.ctrlKey && e.key === "Enter") this.ejecutar(); };
+    area.oninput = () => this.pintarParametros();
+    this.cargarGuardadas();
+    this.zona.querySelector("#guardar").onclick = () => this.guardar();
+    this.pintarParametros();
+  }
+
+  // Un campo de texto por cada :parametro que aparezca en la consulta
+  pintarParametros() {
+    const nombres = [...new Set([...this.zona.querySelector("#sql").value.matchAll(/:([A-Za-z_][A-Za-z0-9_]*)/g)].map(m => m[1]))];
+    const caja = this.zona.querySelector("#parametros"), previos = this.valores();
+    caja.innerHTML = nombres.map(n => '<label>:' + escapar(n) + '<input data-param="' + escaparAtributo(n) + '" value="' + escaparAtributo(previos[n] ?? "") + '"></label>').join("");
+  }
+
+  valores() {
+    return Object.fromEntries([...this.zona.querySelectorAll("[data-param]")].map(i => [i.dataset.param, i.value]));
+  }
+
+  async cargarGuardadas() {
+    const select = this.zona.querySelector("#guardadas");
+    const datos = await fetch("api/superapi.php?ruta=tabla&tabla=consultas").then(r => r.json());
+    if (datos.ok === false) return;
+    this.guardadas = Object.fromEntries(datos.registros.map(r => [r.identificador, r]));
+    datos.registros.reverse().forEach(r => select.add(new Option(r.nombre, r.identificador)));
+    select.onchange = () => { if (select.value) { this.zona.querySelector("#sql").value = this.guardadas[select.value].sql; this.pintarParametros(); } };
+  }
+
+  async guardar() {
+    const nombre = prompt("Nombre de la consulta:");
+    if (!nombre) return;
+    const respuesta = await fetch("api/superapi.php?ruta=crear", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tabla: "consultas", datos: { nombre, descripcion: "", sql: this.zona.querySelector("#sql").value } })
+    }).then(r => r.json());
+    this.zona.querySelector("#estado").textContent = respuesta.ok ? "Consulta guardada" : (respuesta.error || "Error");
+    if (respuesta.ok) this.render();
   }
 
   async ejecutar() {
@@ -37,7 +73,7 @@ class RedkyberConsola {
     const respuesta = await fetch("api/superapi.php?ruta=consulta", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sql: this.zona.querySelector("#sql").value })
+      body: JSON.stringify({ sql: this.zona.querySelector("#sql").value, parametros: this.valores() })
     }).then(r => r.json());
 
     if (respuesta.ok === false) {

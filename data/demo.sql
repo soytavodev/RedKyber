@@ -84,3 +84,7 @@ INSERT INTO lineaspedido VALUES
 (13,8,2,260000000,NULL),
 (14,2,1,125000000,NULL),
 (14,3,1,148000000,NULL);
+
+INSERT INTO consultas (nombre,descripcion,sql) VALUES
+('Pedidos de un cliente','Pedidos del cliente cuyo nombre se indica (parámetro :cliente)','SELECT p.identificador, p.fecha, p.estado, p.total FROM pedidos p JOIN clientes c ON c.identificador = p.cliente_id WHERE c.nombre = :cliente ORDER BY p.fecha DESC'),
+('Pedidos por encima de un importe','Pedidos con total mayor al parámetro :minimo','SELECT p.identificador, c.nombre AS cliente, p.fecha, p.total FROM pedidos p JOIN clientes c ON c.identificador = p.cliente_id WHERE p.total > :minimo ORDER BY p.total DESC');
