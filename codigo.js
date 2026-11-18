@@ -16,6 +16,8 @@ fetch("api/superapi.php?ruta=modulos")
   datos.forEach(dato => menu.innerHTML += '<a href="#">'+escapar(dato)+'</a>');
 });
 
+function recargarEntidades(){ document.querySelector("#entidades").innerHTML = ""; cargarEntidades(); }
+function cargarEntidades(){
 fetch("api/superapi.php?ruta=entidades")
 .then(respuesta => respuesta.json())
 .then(datos => {
@@ -33,6 +35,8 @@ fetch("api/superapi.php?ruta=entidades")
     menu.appendChild(enlace);
   });
 });
+}
+cargarEntidades();
 
 function cargarTabla(tabla){
   tablaActual = tabla;
@@ -140,6 +144,7 @@ const vistas = {
   dashboard: () => new RedkyberDashboard().render(),
   informes: () => new RedkyberInformes().render(),
   consola: () => new RedkyberConsola().render(),
+  modelo: () => new RedkyberModelo().render(),
   rendimiento: () => new RedkyberRendimiento().render()
 };
 document.querySelectorAll("#sistema button").forEach(boton => {

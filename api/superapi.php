@@ -1,6 +1,8 @@
 <?php
 header('Content-Type: application/json; charset=utf-8');
-$db = new SQLite3('../data/redkyber.db');
+// La ruta de la base se puede cambiar con REDKYBER_DB (lo usan las pruebas para no tocar los datos reales)
+define('RUTA_BD', getenv('REDKYBER_DB') ?: __DIR__.'/../data/redkyber.db');
+$db = new SQLite3(RUTA_BD);
 $db->enableExceptions(true);
 
 function tablasPermitidas($db){
@@ -15,6 +17,9 @@ function estructura($db,$tabla){
   if(!$pk) throw new Exception('La tabla no tiene clave primaria');
   return [$columnas,$pk];
 }
+// Adaptación del modelo de datos: los identificadores se validan con una lista cerrada de caracteres
+function identificador($n){ if(!preg_match('/^[A-Za-z_][A-Za-z0-9_]{0,40}$/',(string)$n)) throw new Exception('Nombre no válido: usa letras, números y guion bajo (máx. 41)'); return $n; }
+function tipoCampo($t){ $t=strtoupper((string)$t); if(!in_array($t,['TEXT','INTEGER','REAL'],true)) throw new Exception('Tipo no válido: TEXT, INTEGER o REAL'); return $t; }
 function entrada(){ return json_decode(file_get_contents('php://input'),true) ?: []; }
 function filas($db,$sql){ $r=$db->query($sql); $filas=[]; while($f=$r->fetchArray(SQLITE3_ASSOC)) $filas[]=$f; return $filas; }
 
@@ -50,7 +55,7 @@ function indicadores($db){
 
 // Mide cuánto tarda cada consulta y el tamaño de la base de datos
 function rendimiento($db){
-  $ruta=realpath(__DIR__.'/../data/redkyber.db');
+  $ruta=realpath(RUTA_BD);
   $tablas=[];
   foreach(tablasPermitidas($db) as $t){
     $inicio=hrtime(true);
@@ -110,7 +115,7 @@ try{
       $sql=trim(entrada()['sql'] ?? '');
       $sql=rtrim($sql,"; \n\r\t");
       if(!preg_match('/^(SELECT|WITH)\b/i',$sql) || str_contains($sql,';')) throw new Exception('Solo se permite una sentencia SELECT');
-      $lectura=new SQLite3(__DIR__.'/../data/redkyber.db',SQLITE3_OPEN_READONLY);
+      $lectura=new SQLite3(RUTA_BD,SQLITE3_OPEN_READONLY);
       $lectura->enableExceptions(true);
       $inicio=hrtime(true);
       $r=$lectura->query($sql); $columnas=[]; $registros=[];
@@ -119,6 +124,29 @@ try{
       $ms=round((hrtime(true)-$inicio)/1e6,3);
       $lectura->close();
       echo json_encode(['columnas'=>$columnas,'registros'=>$registros,'ms'=>$ms],JSON_UNESCAPED_UNICODE); break;
+    case 'modelo':
+      $tablas=[]; foreach(tablasPermitidas($db) as $t){ [$cols]=estructura($db,$t); $tablas[]=['tabla'=>$t,'columnas'=>array_map(fn($c)=>['name'=>$c['name'],'type'=>$c['type'],'pk'=>$c['pk']],$cols)]; }
+      $vistas=filas($db,"SELECT name, sql FROM sqlite_master WHERE type='view' ORDER BY name");
+      echo json_encode(['tablas'=>$tablas,'vistas'=>$vistas],JSON_UNESCAPED_UNICODE); break;
+    case 'agregar_campo':
+      $e=entrada(); $segura=validarTabla($db,$e['tabla']??''); $campo=identificador($e['nombre']??''); $tipo=tipoCampo($e['tipo']??'');
+      [$cols]=estructura($db,$e['tabla']); if(in_array($campo,array_column($cols,'name'),true)) throw new Exception('Ese campo ya existe en la tabla');
+      $db->exec("ALTER TABLE $segura ADD COLUMN \"$campo\" $tipo"); echo json_encode(['ok'=>true]); break;
+    case 'crear_tabla':
+      $e=entrada(); $nombre=identificador($e['nombre']??''); if(in_array($nombre,tablasPermitidas($db),true)) throw new Exception('Esa tabla ya existe');
+      $campos=$e['campos']??[]; if(!$campos) throw new Exception('Indica al menos un campo');
+      $def=[]; $vistos=[]; foreach($campos as $c){ $n=identificador($c['nombre']??''); if(in_array(strtolower($n),$vistos,true)||strtolower($n)==='identificador') throw new Exception("Campo repetido: $n"); $vistos[]=strtolower($n); $def[]="\"$n\" ".tipoCampo($c['tipo']??''); }
+      $db->exec("CREATE TABLE \"$nombre\" (".implode(', ',$def).", identificador INTEGER PRIMARY KEY AUTOINCREMENT)"); echo json_encode(['ok'=>true]); break;
+    case 'crear_vista':
+      $e=entrada(); $nombre=identificador($e['nombre']??''); $sql=rtrim(trim($e['sql']??''),"; \n\r\t");
+      if(!preg_match('/^(SELECT|WITH)\b/i',$sql) || str_contains($sql,';')) throw new Exception('La vista debe ser una única sentencia SELECT');
+      if(in_array($nombre,tablasPermitidas($db),true)) throw new Exception('Ya existe una tabla con ese nombre');
+      $db->exec("DROP VIEW IF EXISTS \"$nombre\""); $db->exec("CREATE VIEW \"$nombre\" AS $sql");
+      try{ $db->query("SELECT * FROM \"$nombre\" LIMIT 1"); }catch(Throwable $x){ $db->exec("DROP VIEW \"$nombre\""); throw $x; }
+      echo json_encode(['ok'=>true]); break;
+    case 'eliminar_vista':
+      $nombre=identificador(entrada()['nombre']??''); if(!$db->querySingle("SELECT COUNT(*) FROM sqlite_master WHERE type='view' AND name='".$db->escapeString($nombre)."'")) throw new Exception('La vista no existe');
+      $db->exec("DROP VIEW \"$nombre\""); echo json_encode(['ok'=>true]); break;
     default: throw new Exception('Ruta no válida');
   }
 }catch(Throwable $e){ http_response_code(400); echo json_encode(['ok'=>false,'error'=>$e->getMessage()],JSON_UNESCAPED_UNICODE); }
