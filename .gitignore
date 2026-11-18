@@ -1,1 +1,5 @@
 data/clave-integracion.txt
+
+# Salida generada por psp/ (se regenera al ejecutar)
+data/extracciones_psp/
+__pycache__/
