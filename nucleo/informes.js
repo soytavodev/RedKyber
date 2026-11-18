@@ -13,14 +13,25 @@ class RedkyberInformes {
 
   async render() {
     this.zona.innerHTML = '<div class="vacio">Generando informe…</div>';
-    const nombres = await fetch("api/superapi.php?ruta=entidades").then(r => r.json());
-    const entidades = await Promise.all(nombres.map(n => fetch("api/superapi.php?ruta=tabla&tabla=" + encodeURIComponent(n)).then(r => r.json()).then(d => ({ tabla: n, ...d }))));
+    // Fuentes del informe: tablas y vistas del modelo; el usuario elige cuáles incluir
+    const modelo = await fetch("api/superapi.php?ruta=modelo").then(r => r.json());
+    const fuentes = [...modelo.tablas.map(t => ({ nombre: t.tabla, vista: false })), ...modelo.vistas.map(v => ({ nombre: v.name, vista: true }))];
+    let elegidas;
+    try { elegidas = JSON.parse(localStorage.getItem("redkyber_informe")); } catch (e) {}
+    elegidas = (elegidas || fuentes.filter(f => !f.vista).map(f => f.nombre)).filter(n => fuentes.some(f => f.nombre === n));
+    const cargar = f => f.vista
+      ? fetch("api/superapi.php?ruta=consulta", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sql: 'SELECT * FROM "' + f.nombre + '"' }) }).then(r => r.json()).then(d => ({ tabla: f.nombre, columnas: d.columnas, registros: d.registros }))
+      : fetch("api/superapi.php?ruta=tabla&tabla=" + encodeURIComponent(f.nombre)).then(r => r.json()).then(d => ({ tabla: f.nombre, ...d }));
+    const entidades = await Promise.all(fuentes.filter(f => elegidas.includes(f.nombre)).map(cargar));
     const total = entidades.reduce((a, e) => a + e.registros.length, 0);
 
     this.zona.innerHTML = `
       <div class="barra no-imprimir">
         <div><small>INFORMES Y LISTADOS</small><h2>Informe general</h2></div>
         <button type="button" id="imprimir">Imprimir / PDF</button>
+      </div>
+      <div class="ajustes no-imprimir"><small>Contenido del informe (las vistas se crean en «Modelo»):</small>
+        ${fuentes.map(f => `<label><input type="checkbox" data-fuente="${escaparAtributo(f.nombre)}"${elegidas.includes(f.nombre) ? " checked" : ""}> ${escapar(f.nombre)}${f.vista ? " <em>(vista)</em>" : ""}</label>`).join("")}
       </div>
       <article class="documento">
         <header class="documento-cabecera">
@@ -30,6 +41,11 @@ class RedkyberInformes {
         <div id="bloques"></div>
       </article>`;
     this.zona.querySelector("#imprimir").onclick = () => window.print();
+    this.zona.querySelectorAll("[data-fuente]").forEach(i => i.onchange = () => {
+      const marcadas = [...this.zona.querySelectorAll("[data-fuente]:checked")].map(x => x.dataset.fuente);
+      try { localStorage.setItem("redkyber_informe", JSON.stringify(marcadas)); } catch (e) {}
+      this.render();
+    });
     const bloques = this.zona.querySelector("#bloques");
     entidades.forEach(e => bloques.appendChild(this.bloque(e)));
   }
